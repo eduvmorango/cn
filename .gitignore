@@ -1,0 +1,45 @@
+.bsp/
+.bloop/
+.bloop
+
+#project/
+target/
+build/
+
+#metals
+.metals
+.metals/*
+.metals/
+project/metals.sbt
+
+
+# eclipse
+build
+.classpath
+.project
+.settings
+.worksheet
+
+# intellij idea
+*.log
+*.iml
+*.ipr
+*.iws
+.ideas
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/task.xml
+
+# mac
+.DS_Store
+
+# other?
+.history
+.scala_dependencies
+.cache
+#
+
+#frontned
+node_modules/
+.parcel-cache
+dist
