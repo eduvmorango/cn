@@ -24,6 +24,9 @@ import _root_.cats.syntax.all.*
 import io.github.iltotore.iron.constraint.numeric.Greater
 import cn.core.api.AddressKeyPair
 import cn.core.spi.LedgerException.AddressNotFound
+import cn.core.spi.Ledger.TransactionData
+import cn.core.spi.LedgerException.MissingPrivateKey
+import cn.core.spi.LedgerException.BlockDereferenced
 
 class SingleNodeLedger(
   val header: LedgerHeader,
@@ -34,48 +37,90 @@ class SingleNodeLedger(
 
   def current: IO[Block] = st.get
 
-  def blocks: Stream[IO, Block] =
-    Stream.eval(current).flatMap(c => Stream.iterable(c.flatten))
+  def blocks: Stream[IO, Block] = Stream.eval(current).flatMap(blocksUntil(_, 0))
 
-  def getAvailableUtxosForAddress(bs: Stream[IO, Block], address: Address): IO[Map[TransactionId, (TransactionOutput, Int)]] =
-      bs.fold((false, Map.empty[TransactionId, (TransactionOutput, Int)]))(
-        (acc, cur) =>
-          val (exists, available) = acc
+  def blocksUntil(block: Block, idx: Int): Stream[IO, Block] =
+      if block.index == idx then
+        Stream(block)
+      else if idx < 0 || idx > block.index  then
+        Stream.raiseError(Throwable("Invalid Index"))
+      else
+        Stream.iterable(block.flattenUntil(idx))
 
-          val outputs: Map[TransactionId, (TransactionOutput, Int)] = cur.transactions.toList.flatMap:
-            t =>
-              val id = t.hash.value
-              t.os.filter(_.address === address).zipWithIndex.map((to, i) =>  TransactionId(s"$id-$i") -> (to, i))
-          .toMap
+  def getTransactionData(bs: Stream[IO, Block], current: TransactionData): IO[TransactionData] =
+    bs.fold(
+      (current.utxo.nonEmpty, current.nonce.value, current.utxo)
+    ):
+      (acc, block) =>
+        val addresses = current.addresses
+        val (exists, nonce, previous) = acc
 
-          val utxos: Map[TransactionId, (TransactionOutput, Int)] = available ++ outputs
+        val blockTransactions: List[Transaction] = block.transactions.toList
 
-          val ued: List[TransactionId] = cur.transactions.toList.flatMap(_.is.filter(_.address === address).map(_.txId))
+        val blockGreatestAddressNonce = blockTransactions.filter(_.is.exists(ti => addresses.exists(_ === ti.address))).map(_.nonce.value).maxOption.getOrElse(nonce)
 
-          (exists || outputs.nonEmpty, utxos.filterNot((tid, _) =>  ued.exists(_ === tid)))
+        val blockAddressOutputs: Map[TransactionId, (TransactionOutput, Int)] = blockTransactions.flatMap:
+          t =>
+            val id = t.hash.value
+            t.os.filter(i =>  addresses.exists(_ === i.address)).zipWithIndex.map((tOutput, idx) => TransactionId(s"$id-$idx") -> (tOutput, idx))
+        .toMap
 
-          )
-          .compile
-          .lastOrError
-          .flatMap:
-            (exists, mp) =>
-              if exists then IO(mp) else IO.raiseError(AddressNotFound)
+        val mergedUtxos = previous ++ blockAddressOutputs
 
-  def getUtxosForAddress(address: Address): IO[List[TransactionOutput]] =
-    blocks.fold(List.empty[TransactionOutput])(
-      (av, cur) =>
+        val usedIds = blockTransactions.flatMap(t => t.is.filter(i => addresses.exists(_ === i.address)).map(_.txId))
 
-      av ++ cur.transactions.toList.flatMap:
-        t =>
-          t.os.filter(_.address === address)
+        val availableUtxos = mergedUtxos.filterNot((tid, _) => usedIds.exists(_ === tid))
 
-
-    ).compile.lastOrError
+        (exists ||  blockAddressOutputs.nonEmpty, blockGreatestAddressNonce,  availableUtxos)
+    .compile
+    .lastOrError
+    .flatMap:
+      (exists, nonce, mp) =>
+        (if exists then IO.pure(TransactionData(current.addresses, Nonce(nonce + 1), mp)) else IO.raiseError(AddressNotFound))
 
   def appendTransaction(transaction: Transaction): IO[Unit] =
-    IO.println(transaction) *> mempool.offer(transaction).as(())
+     mempool.offer(transaction).as(())
 
 
+  def appendBlock(block: Block): IO[Either[Unit, Unit]] =
+    IO.fromOption(block.prior)(BlockDereferenced).flatMap(prior =>
+      st.flatModify:cur =>
+        if cur == prior then
+          (block, IO(Right(())))
+        else
+          (cur, IO(Left(())))
+    )
+
+  def process: Stream[IO, Unit] = Stream.fromQueueUnterminated(mempool).chunkLimit(4).parEvalMap(2):
+    chunk =>
+      current.flatMap:
+        block =>
+          val nowBlocks: Stream[IO, Block] = blocksUntil(block, 0)
+
+          val validTransactions = chunk.toList.distinct.mapFilter:
+            t =>
+            val td = TransactionData.empty(t.is.map(_.address))
+            val os = td.utxo.keys.toList
+
+
+            val outputsAreAvailable = t.is.map(i => !os.contains(i.txId)).fold(true)(_ && _)
+
+            if outputsAreAvailable then
+              Some(t)
+            else
+              None
+
+          if validTransactions.isEmpty then
+            IO.println("There's no valid transactions")
+          else
+            IO.realTimeInstant
+              .map(_.atOffset(ZoneOffset.UTC))
+              .map(block.next(NonEmptyList.fromListUnsafe(validTransactions),_))
+              .flatMap(b =>
+                IO.fromOption(header.address.privateKey)(MissingPrivateKey)
+                  .flatMap(signerService.sign(b.hash, _))
+                  .map(sig => b.copy(signature = Some(sig)))
+              ).flatMap(appendBlock(_)).void
 
 
 object SingleNodeLedger:
@@ -98,8 +143,8 @@ object SingleNodeLedger:
     IO.realTimeInstant.map:
       ins =>
         val amount = Amount(100)
-        val trs = NonEmptyList.one(Transaction(List.empty, List(TransactionOutput(amount, ledgerHeader.address.address))))
-        new Block(None, trs, None, Nonce(0), ins.atOffset(ZoneOffset.UTC), 0)
+        val trs = NonEmptyList.one(Transaction(Nonce(0), List.empty, List(TransactionOutput(amount, ledgerHeader.address.address))))
+        new Block(None, trs, None,  ins.atOffset(ZoneOffset.UTC), 0)
 
   def apply(signerService: SignerService[IO]): Resource[IO, SingleNodeLedger] =
     Resource.make(

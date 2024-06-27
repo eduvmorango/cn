@@ -30,7 +30,7 @@ object TransactionOutput:
   given Eq[TransactionOutput]   = Eq.fromUniversalEquals
   given Hash[TransactionOutput] = Hash.fromUniversalHashCode
 
-case class Transaction(is: List[TransactionInput], os: List[TransactionOutput]):
+case class Transaction(nonce: Nonce, is: List[TransactionInput], os: List[TransactionOutput]):
   self =>
 
   def hash: CnHash = CnHash(Hash.hash(self).toHexString)
@@ -47,7 +47,6 @@ case class TransactionRequest(
   source: Address,
   destination: Address,
   amount: Amount,
-  nonce: Nonce,
   timestamp: OffsetDateTime
 ):
   self =>
@@ -55,6 +54,7 @@ case class TransactionRequest(
   val hash: CnHash = CnHash(Hash.hash(self).toHexString)
 
   def calculateTransaction(
+    nonce: Nonce,
     utxos: Map[TransactionId, (TransactionOutput, Int)]
   ): Either[String, Transaction] =
     val (inputs, newOutputs, remaining) =
@@ -63,12 +63,11 @@ case class TransactionRequest(
       )(
         (acc, cur) =>
           val (inps, outs, remainingAmount) = acc
-          val (txId, curOut)                = cur
+          val (txId, (currentOutput, idx))  = cur
 
-          val currentValue: Double = curOut._1.amount.value
-          val idx                  = curOut._2
+          val currentValue: Double = currentOutput.amount.value
 
-          val diff = currentValue - remainingAmount
+          val diff = Math.abs(currentValue - remainingAmount)
 
           if remainingAmount == 0 then acc
           else if currentValue == remainingAmount then
@@ -97,9 +96,9 @@ case class TransactionRequest(
       )
 
     if remaining != 0 then Left("Insufficient Amount")
-    else Right(Transaction(inputs, newOutputs))
+    else Right(Transaction(nonce, inputs, newOutputs))
 
 object TransactionRequest:
 
   given Eq[TransactionRequest]   = Eq.by(_.hash)
-  given Hash[TransactionRequest] = Hash.by(t => (t.source, t.destination, t.nonce, t.timestamp.toString))
+  given Hash[TransactionRequest] = Hash.by(t => (t.source, t.destination, t.timestamp.toString))

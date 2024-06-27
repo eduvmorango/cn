@@ -26,12 +26,14 @@ object Server extends ResourceApp:
       addressService <- AddressService(signerService)
       ledger         <- SingleNodeLedger(signerService)
       ledgerService  <- LedgerService.default(ledger, signerService)
+      _ <- ledger.process.compile.drain.background
       _ <- Resource.pure(mkRoutes(addressService, ledgerService)).evalMap:
         routes =>
 
         val reducedRoutes = routes.reduceLeft(_ <+> _)
 
-        val httpApp = Router.of[IO]("api/v1" -> reducedRoutes ).orNotFound
+        val httpApp = Router.of[IO]("api/v1" -> reducedRoutes).orNotFound
+
 
          EmberServerBuilder
            .default[IO]
@@ -40,9 +42,5 @@ object Server extends ResourceApp:
            .withHttpApp(httpApp)
            .build
            .useForever
-
-
-
-
 
     yield ExitCode.Success

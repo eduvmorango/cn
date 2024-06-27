@@ -11,7 +11,6 @@ case class Block(
   prior: Option[Block],
   transactions: NonEmptyList[Transaction],
   signature: Option[Signature],
-  nonce: Nonce,
   timestamp: OffsetDateTime,
   index: Int
 ):
@@ -31,16 +30,30 @@ case class Block(
     case None => List(self)
     case _    => flatten0(self, Nil)
 
+  def flattenUntil(idx: Int): List[Block] =
+    @tailrec
+    def flatten0(block: Block, cur: List[Block]): List[Block] =
+      block.prior match
+      case None                              => block :: cur
+      case Some(value) if value.index == idx => value :: block :: cur
+      case Some(value)                       => flatten0(value, block :: cur)
+
+    self.prior match
+    case None    => List(self)
+    case Some(p) => flatten0(p, self :: Nil)
+
   def sign(signature: Signature): Block = self.copy(signature = Some(signature))
+
+  def next(transactions: NonEmptyList[Transaction], timestamp: OffsetDateTime) =
+    Block(self, transactions, timestamp)
 
 object Block:
 
   def apply(
     prior: Block,
     transactions: NonEmptyList[Transaction],
-    nonce: Nonce,
     timestamp: OffsetDateTime
-  ) = new Block(Some(prior), transactions, None, nonce, timestamp, prior.index + 1)
+  ) = new Block(Some(prior), transactions, None, timestamp, prior.index + 1)
 
   given [A : Hash]: Hash[NonEmptyList[A]] = Hash.by(_.toList)
   given Eq[Block]                         = Eq.by(_.hash)
@@ -51,7 +64,6 @@ object Block:
         (
           b.prior.map(_.hash).getOrElse(CnHash("")),
           b.transactions.toList.hashCode.toHexString,
-          b.nonce,
           b.timestamp.toString
         )
     )

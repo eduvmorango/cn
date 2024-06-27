@@ -6,7 +6,7 @@ import io.github.iltotore.iron.constraint.numeric.*
 
 private object constraints:
 
-  type ValidAmount = Greater[0] DescribedAs "Invalid Amount"
+  type ValidAmount = GreaterEqual[0] DescribedAs "Invalid Amount"
 
 object types:
 

@@ -17,6 +17,9 @@ import io.github.arainko.ducktape.*
 import cn.core.api.TransactionException.InsufficientAmount
 import cn.core.api.SignedTransaction
 import cn.core.api.TransactionException.InvalidAddressPublicKey
+import cn.platform.iml.SingleNodeLedger
+import cn.core.spi.Ledger.TransactionData
+import cn.core.api.Block
 
 case class Balance(available: Amount, utxos: List[TransactionOutput])
 
@@ -35,18 +38,20 @@ trait LedgerService[F[_]]:
 
   def requestTransaction(request: CreateTransaction): F[Unit]
 
+  def getBlocks: F[List[Block]]
+
 object LedgerService:
 
-  def default(ledger: Ledger[IO], signerService: SignerService[IO]): Resource[IO, LedgerService[IO]] =
+  def default(ledger: SingleNodeLedger, signerService: SignerService[IO]): Resource[IO, LedgerService[IO]] =
     Resource.eval(Random.scalaUtilRandom[IO]).map( rnd =>
       new LedgerService[IO]:
 
         def getBalance(address: Address): IO[Balance] =
           ledger
-            .getAvailableUtxosForAddress(address)
+            .getTransactionData(ledger.blocks, TransactionData.empty(address))
             .map:
-              mp =>
-                val utxos = mp.map(_._2._1).toList
+              td =>
+                val utxos =  td.utxo.map(_._2._1).toList
                 Balance(Amount.applyUnsafe(utxos.map(_.amount.value).sum), utxos)
 
 
@@ -54,11 +59,15 @@ object LedgerService:
           for
             _ <- signerService.checkPublicKeyAndAddress(request.source, request.sourcePublicKey).flatMap(if _ then IO.unit else IO.raiseError(InvalidAddressPublicKey))
             now <- IO.realTimeInstant.map(_.atOffset(ZoneOffset.UTC))
-            nonce <- rnd.nextIntBounded(9999).map(Nonce.apply)
-            tr = request.into[TransactionRequest].transform(Field.const(_.nonce, nonce) ,Field.const(_.timestamp,now))
-            transaction <- ledger.getAvailableUtxosForAddress(tr.source).flatMap(utxos => IO.fromEither(tr.calculateTransaction(utxos).leftMap(_ => InsufficientAmount)))
+            tr = request.into[TransactionRequest].transform(Field.const(_.timestamp,now))
+            transaction <- ledger
+              .getTransactionData(ledger.blocks, TransactionData.empty(tr.source))
+              .flatMap(td => IO.fromEither(tr.calculateTransaction(td.nonce, td.utxo).leftMap(_ => InsufficientAmount)))
             signedTransaction <- signerService.sign(transaction.hash, request.sourcePrivateKey).map(SignedTransaction(_, transaction))
             _ <- signerService.checkSignature(signedTransaction, request.sourcePublicKey)
             _ <- ledger.appendTransaction(transaction)
           yield ()
+
+        def getBlocks: IO[List[Block]] =
+          ledger.blocks.compile.toList
     )

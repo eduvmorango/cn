@@ -20,16 +20,20 @@ object LedgerModel:
     case TransactionException.InsufficientAmount      => HttpException.UnprocessableEntity("Insufficient Amount")
     case TransactionException.InvalidSignature        => HttpException.UnprocessableEntity("Invalid Signature")
     case TransactionException.InvalidAddressPublicKey =>
-      HttpException.UnprocessableEntity("Public Key isn't bound to Address")
-    case SignerException.SigningError                 =>
-      HttpException.BadRequest("Signign error")
-    case e                                            =>
-      HttpException.InternalServerError()
+      HttpException.UnprocessableEntity("PublicKey doesn't match Address")
+    case SignerException.SigningError                 => HttpException.BadRequest("Signign error")
+    case e                                            => HttpException.InternalServerError()
 
   val getBalance = endpoint
     .get
     .in("ledger" / "balance" / path[Address]("address"))
     .out(jsonBody[BalanceResponse])
+    .errorOut(HttpException.errorOut)
+
+  val getBlocks = endpoint
+    .get
+    .in("ledger" / "blocks")
+    .out(jsonBody[List[BlockResponse]])
     .errorOut(HttpException.errorOut)
 
   val postRequestTransaction =
