@@ -2,6 +2,7 @@ package cn.platform.http.model.codecs
 
 import cats.syntax.all.*
 import cn.core.api.Address
+import cn.core.api.Block
 import cn.core.api.EncodedPrivateKey
 import cn.core.api.EncodedPublicKey
 import cn.core.api.Nonce

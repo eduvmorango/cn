@@ -15,6 +15,9 @@ object TransactionException:
   case object InvalidSignature extends CnException:
     def message = "Invalid Signature"
 
+  case object MissingInput extends CnException:
+    def message = "Missing Input"
+
   case object EmptyTransactionRequest extends CnException:
     def message = "Empty Transaction Request"
 

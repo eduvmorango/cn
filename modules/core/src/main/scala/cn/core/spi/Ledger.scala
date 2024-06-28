@@ -28,12 +28,18 @@ object Ledger:
 
   case class TransactionData(
     addresses: List[Address],
-    nonce: Nonce,
+    nonce: Map[Address, Nonce],
     utxo: Map[TransactionId, (TransactionOutput, Int)],
     accNewOutputs: List[TransactionOutput]
-  )
+  ):
+    self =>
+
+    def filterUtxo(ts: List[TransactionId]): TransactionData =
+      TransactionData(self.addresses, self.nonce, utxo.view.filterKeys(!ts.contains(_)).toMap, accNewOutputs)
 
   object TransactionData:
 
-    def empty(addresses: List[Address]): TransactionData = TransactionData(addresses, Nonce(0), Map.empty, List.empty)
-    def empty(address: Address): TransactionData = TransactionData(List(address), Nonce(0), Map.empty, List.empty)
+    def empty(addresses: List[Address]): TransactionData =
+      TransactionData(addresses, Map.empty, Map.empty, List.empty)
+
+    def empty(address: Address): TransactionData = TransactionData(List(address), Map.empty, Map.empty, List.empty)

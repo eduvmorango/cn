@@ -40,7 +40,7 @@ trait LedgerService[F[_]]:
 
   def getBalance(address: Address): F[Balance]
 
-  def requestTransaction(request: CreateTransaction): F[Unit]
+  def requestTransaction(request: CreateTransaction): F[Transaction]
 
   def requestTransactionBatch(batch: List[CreateTransaction]): F[Unit]
 
@@ -84,8 +84,8 @@ object LedgerService:
             _  <- signerService.checkSignature(tr, request.sourcePublicKey)
           yield tr
 
-        def requestTransaction(request: CreateTransaction): IO[Unit] =
-           createSignedTransaction(request).flatMap(ledger.appendTransaction)
+        def requestTransaction(request: CreateTransaction): IO[Transaction] =
+           createSignedTransaction(request).flatTap(ledger.appendTransaction)
 
         def requestTransactionBatch(batch: List[CreateTransaction]): IO[Unit] =
           val groupedBySource: Map[Address, List[CreateTransaction]] = batch.groupBy(t => t.source)

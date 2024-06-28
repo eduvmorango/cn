@@ -29,6 +29,9 @@ import cn.core.spi.LedgerException.MissingPrivateKey
 import cn.core.spi.LedgerException.BlockDereferenced
 import cn.core.api.UnsignedTransaction
 import fs2.Chunk
+import cn.core.api.TransactionException
+import cn.core.api.TransactionException.MissingInput
+import cn.platform.http.model.r.address
 
 class SingleNodeLedger(
   val header: LedgerHeader,
@@ -51,15 +54,21 @@ class SingleNodeLedger(
 
   def getTransactionData(bs: Stream[IO, Block], current: TransactionData): IO[TransactionData] =
     bs.fold(
-      (current.utxo.nonEmpty, current.nonce.value, current.utxo, current.accNewOutputs)
+      (current.utxo.nonEmpty, current.nonce, current.utxo, current.accNewOutputs)
     ):
       (acc, block) =>
         val addresses = current.addresses
-        val (exists, nonce, previous, accNewOutputs) = acc
+        val (exists, nonces, previous, accNewOutputs) = acc
 
         val blockTransactions: List[Transaction] = block.transactions.toList
 
-        val blockGreatestAddressNonce = blockTransactions.filter(_.is.exists(ti => addresses.exists(_ === ti.address))).map(_.nonce.value).maxOption.getOrElse(nonce)
+ //       val blockGreatestAddressNonce = blockTransactions.filter(_.is.exists(ti => addresses.exists(_ === ti.address))).map(_.nonce.value).maxOption.getOrElse(nonce)
+
+        val newNonces: Map[Address.OpaqueType, List[Int]] = blockTransactions.filter(_.is.exists(ti => addresses.exists(_ === ti.address))).map(
+          t => t.is.head.address -> t.nonce.value).groupBy(_._1).map((k,v) => k -> v.map(_._2))
+
+        val mergedNonces = ((nonces.view.mapValues(n => List(n.value)).toMap) ++ newNonces).view.mapValues(l =>  Nonce(l.max)).toMap
+
 
         val blockAddressOutputs: Map[TransactionId, (TransactionOutput, Int)] = blockTransactions.flatMap:
           t =>
@@ -74,12 +83,14 @@ class SingleNodeLedger(
         val availableUtxos = mergedUtxos.filterNot((tid, _) => usedIds.exists(_ === tid))
 
 
-        (exists ||  blockAddressOutputs.nonEmpty, blockGreatestAddressNonce,  availableUtxos, accNewOutputs)
+        (exists ||  blockAddressOutputs.nonEmpty,  mergedNonces,  availableUtxos, accNewOutputs)
     .compile
     .lastOrError
     .flatMap:
-      (exists, nonce, mp, newOutputs) =>
-        (if exists then IO.pure(TransactionData(current.addresses, Nonce(nonce + 1), mp, newOutputs)) else IO.raiseError(AddressNotFound))
+      (exists, nonces, mp, newOutputs) =>
+        val noncesUpdated =
+          nonces.updatedWith(current.addresses.head)(n => n.map(v => Nonce(v.value + 1)))
+        (if exists then IO.pure(TransactionData(current.addresses, noncesUpdated, mp, newOutputs)) else IO.raiseError(AddressNotFound))
 
   def appendTransaction(transaction: Transaction): IO[Unit] =
      mempool.offer(transaction).void
@@ -107,35 +118,45 @@ class SingleNodeLedger(
         .flatMap:
           block =>
             val nowBlocks: Stream[IO, Block] = blocksUntil(block, 0)
+              val iss = chunk.toList.flatMap(_.is).map(_.address)
 
-            val validTransactions = chunk.toList.distinct.mapFilter:
-              t =>
-              val td = TransactionData.empty(t.is.map(_.address))
-              val os = td.utxo.keys.toList
+              Stream.eval(getTransactionData(nowBlocks, TransactionData.empty(iss))).flatMap:
+                itd =>
 
-              val outputsAreAvailable = t.is.map(i => !os.contains(i.txId)).fold(true)(_ && _)
 
-              if outputsAreAvailable then
-                Some(t)
-              else
-                None
+                val vTransactions =
+                  chunk.toList.distinct.foldLeft[(TransactionData, List[Transaction])]((itd, List.empty)):
+                    (tdts, t) =>
+                      val (td, ts) = tdts
 
-            if validTransactions.isEmpty then
-              Stream.eval(IO.println("There's no valid transactions"))
-            else
-              Stream.eval(
-                IO.realTimeInstant
-                  .map(_.atOffset(ZoneOffset.UTC))
-                  .map(block.next(NonEmptyList.fromListUnsafe(validTransactions),_))
-                  .flatMap(b =>
-                    IO.fromOption(header.address.privateKey)(MissingPrivateKey)
-                      .flatMap(signerService.sign(b.hash, _))
-                      .map(sig => b.copy(signature = Some(sig))
+                        val availablesUtxos = td.utxo.keys.toList
+
+                        val usedOutputs = t.is.filter(i => availablesUtxos.contains(i.txId))
+
+                        if usedOutputs == t.is  then
+                         (td.filterUtxo(t.is.map(_.txId)) , t :: ts)
+                        else
+                          (td, ts)
+                  ._2.reverse
+
+                if vTransactions.isEmpty then
+                  Stream.eval(IO.println("There's no valid transactions"))
+                else
+                  Stream.eval(
+                    IO.realTimeInstant
+                      .map(_.atOffset(ZoneOffset.UTC))
+                      .map(block.next(NonEmptyList.fromListUnsafe(vTransactions),_))
+                      .flatMap(b =>
+                        IO.fromOption(header.address.privateKey)(MissingPrivateKey)
+                          .flatMap(signerService.sign(b.hash, _))
+                          .map(sig => b.copy(signature = Some(sig)))
+                      .flatMap(appendBlock(_)))
                   )
-                  .flatMap(appendBlock(_))))
-              .flatMap:
-                case Left(_) => process0(chunk, retries - 1)
-                case _ => Stream.eval(IO.println(s"Block added on $retries"))
+                  .flatMap:
+                    case Left(_) => process0(chunk, retries - 1)
+                    case _ => Stream.eval(IO.println(s"Block added on $retries"))
+
+
 
 
 

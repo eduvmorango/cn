@@ -73,7 +73,7 @@ case class TransactionRequest(
   val totalAmount = self.outputs.toList.map(_._2.value.toDouble).sum
 
   def calculateTransaction(
-    nonce: Nonce,
+    nonce: Map[Address, Nonce],
     utxos: Map[TransactionId, (TransactionOutput, Int)]
   ): Either[CnException, UnsignedTransaction] =
     val (inputs, newOutputs, remaining) =
@@ -89,9 +89,6 @@ case class TransactionRequest(
           val newOutputValue = outs.map(_.amount.value.toDouble).sum
 
           val diff = Math.abs(currentValue - remainingAmount)
-
-          println(outputs.mkString("\n"))
-          println(diff)
 
           if remainingAmount == 0 then acc
           else if currentValue == remainingAmount then
@@ -110,7 +107,7 @@ case class TransactionRequest(
       )
 
     if remaining != 0 then Left(InsufficientAmount)
-    else Right(UnsignedTransaction(nonce, inputs, newOutputs))
+    else Right(UnsignedTransaction(nonce.getOrElse(self.source, Nonce(0)), inputs, newOutputs))
 
 object TransactionRequest:
 
