@@ -29,9 +29,6 @@ import cn.core.spi.LedgerException.MissingPrivateKey
 import cn.core.spi.LedgerException.BlockDereferenced
 import cn.core.api.UnsignedTransaction
 import fs2.Chunk
-import cn.core.api.TransactionException
-import cn.core.api.TransactionException.MissingInput
-import cn.platform.http.model.r.address
 
 class SingleNodeLedger(
   val header: LedgerHeader,
@@ -61,8 +58,6 @@ class SingleNodeLedger(
         val (exists, nonces, previous, accNewOutputs) = acc
 
         val blockTransactions: List[Transaction] = block.transactions.toList
-
- //       val blockGreatestAddressNonce = blockTransactions.filter(_.is.exists(ti => addresses.exists(_ === ti.address))).map(_.nonce.value).maxOption.getOrElse(nonce)
 
         val newNonces: Map[Address.OpaqueType, List[Int]] = blockTransactions.filter(_.is.exists(ti => addresses.exists(_ === ti.address))).map(
           t => t.is.head.address -> t.nonce.value).groupBy(_._1).map((k,v) => k -> v.map(_._2))
@@ -97,8 +92,6 @@ class SingleNodeLedger(
 
   def appendTransactionBatch(batch: List[Transaction]): IO[Unit] =
      mempool.tryOfferN(batch).void
-
-
 
   def appendBlock(block: Block): IO[Either[Unit, Unit]] =
     IO.fromOption(block.prior)(BlockDereferenced).flatMap(prior =>
@@ -140,7 +133,7 @@ class SingleNodeLedger(
                   ._2.reverse
 
                 if vTransactions.isEmpty then
-                  Stream.eval(IO.println("There's no valid transactions"))
+                  Stream.eval(IO.unit) //IO.println("There's no valid transactions"))
                 else
                   Stream.eval(
                     IO.realTimeInstant
@@ -154,11 +147,7 @@ class SingleNodeLedger(
                   )
                   .flatMap:
                     case Left(_) => process0(chunk, retries - 1)
-                    case _ => Stream.eval(IO.println(s"Block added on $retries"))
-
-
-
-
+                    case _ => Stream.eval(IO.unit) // IO.println(s"Block added on $retries"))
 
     Stream.fromQueueUnterminated(mempool).chunkLimit(4).parEvalMap(2)(process0(_, 3).compile.drain)
 

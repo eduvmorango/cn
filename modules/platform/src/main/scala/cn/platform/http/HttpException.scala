@@ -2,6 +2,7 @@ package cn.platform.http
 
 import cn.core.api.CnException
 import io.circe.Codec
+import scala.annotation.nowarn
 import sttp.model.StatusCode
 import sttp.tapir.*
 import sttp.tapir.Schema
@@ -23,7 +24,9 @@ object HttpException:
   given Codec[UnprocessableEntity] = Codec.AsObject.derived
   given Codec[InternalServerError] = Codec.AsObject.derived
 
+  @nowarn
   given Schema[UnprocessableEntity] = Schema.derived
+
   given Schema[InternalServerError] = Schema.derived
 
   val errorOut = oneOf[HttpException](

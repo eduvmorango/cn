@@ -22,7 +22,6 @@ import cn.core.api.TransactionId
 import cn.core.spi.LedgerException.BlockNotFound
 import cn.core.spi.LedgerException.TransactionNotFound
 import cn.core.api.Transaction
-import fs2.Stream
 import cn.core.api.UnsignedTransaction
 import cn.core.api.TransactionException.EmptyTransactionRequest
 

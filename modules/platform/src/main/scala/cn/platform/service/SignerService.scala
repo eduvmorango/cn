@@ -21,7 +21,6 @@ import cn.core.api.AddressKeyPair
 import cn.core.api.Address
 import java.security.MessageDigest
 import cats.syntax.all.*
-import cn.core.api.SignedTransaction
 import cn.core.api.CnException
 import cn.platform.service.SignerException.SigningError
 import cn.core.api.Transaction
