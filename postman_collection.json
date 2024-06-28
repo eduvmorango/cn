@@ -1,0 +1,488 @@
+{
+	"info": {
+		"_postman_id": "ce761ac7-e95c-4c89-8deb-88f3ebc0fe20",
+		"name": "Cn collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "35352231"
+	},
+	"item": [
+		{
+			"name": "Create Address",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"address1\", jsonData.address);",
+							"pm.environment.set(\"public1\", jsonData.publicKey);",
+							"pm.environment.set(\"private1\", jsonData.privateKey);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/address",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"address"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Address 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"address2\", jsonData.address);",
+							"pm.environment.set(\"public2\", jsonData.publicKey);",
+							"pm.environment.set(\"private2\", jsonData.privateKey);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/address",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"address"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Address 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"address3\", jsonData.address);",
+							"pm.environment.set(\"public3\", jsonData.publicKey);",
+							"pm.environment.set(\"private3\", jsonData.privateKey);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/address",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"address"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Address 4",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"address4\", jsonData.address);",
+							"pm.environment.set(\"public4\", jsonData.publicKey);",
+							"pm.environment.set(\"private4\", jsonData.privateKey);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/address",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"address"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Address 5",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"address5\", jsonData.address);",
+							"pm.environment.set(\"public5\", jsonData.publicKey);",
+							"pm.environment.set(\"private5\", jsonData.privateKey);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/address",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"address"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Transaction Batch",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"source\": \"14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ\",\n        \"destination\": \"{{address1}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE2947SptyZHxhN3s1eAiteJxK6MDW0K3FfNXvipLNxpk78FJKYqTU6Tg49b6vuIdDaJ29TSjK9H88drZCnGnVsw==\",\n        \"sourcePrivateKey\": \"MIGNAgEAMBAGByqGSM49AgEGBSuBBAAKBHYwdAIBAQQg+H7iMneZTTUQDT4rRmnd3IgwtGqpheekRBf4MpiOA9KgBwYFK4EEAAqhRANCAATb3jtKm3JkfGE3ezV4CK14nErowNbQrcV81e+Kks3GmTvwUkpipNTpODj1vq+4h0Nonb1NKMr0fzx2tkKcadWz\"\n    },\n    {\n        \"source\": \"14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ\",\n        \"destination\": \"{{address1}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE2947SptyZHxhN3s1eAiteJxK6MDW0K3FfNXvipLNxpk78FJKYqTU6Tg49b6vuIdDaJ29TSjK9H88drZCnGnVsw==\",\n        \"sourcePrivateKey\": \"MIGNAgEAMBAGByqGSM49AgEGBSuBBAAKBHYwdAIBAQQg+H7iMneZTTUQDT4rRmnd3IgwtGqpheekRBf4MpiOA9KgBwYFK4EEAAqhRANCAATb3jtKm3JkfGE3ezV4CK14nErowNbQrcV81e+Kks3GmTvwUkpipNTpODj1vq+4h0Nonb1NKMr0fzx2tkKcadWz\"\n    },\n    {\n        \"source\": \"14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ\",\n        \"destination\": \"{{address2}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE2947SptyZHxhN3s1eAiteJxK6MDW0K3FfNXvipLNxpk78FJKYqTU6Tg49b6vuIdDaJ29TSjK9H88drZCnGnVsw==\",\n        \"sourcePrivateKey\": \"MIGNAgEAMBAGByqGSM49AgEGBSuBBAAKBHYwdAIBAQQg+H7iMneZTTUQDT4rRmnd3IgwtGqpheekRBf4MpiOA9KgBwYFK4EEAAqhRANCAATb3jtKm3JkfGE3ezV4CK14nErowNbQrcV81e+Kks3GmTvwUkpipNTpODj1vq+4h0Nonb1NKMr0fzx2tkKcadWz\"\n    },\n    {\n        \"source\": \"14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ\",\n        \"destination\": \"{{address3}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE2947SptyZHxhN3s1eAiteJxK6MDW0K3FfNXvipLNxpk78FJKYqTU6Tg49b6vuIdDaJ29TSjK9H88drZCnGnVsw==\",\n        \"sourcePrivateKey\": \"MIGNAgEAMBAGByqGSM49AgEGBSuBBAAKBHYwdAIBAQQg+H7iMneZTTUQDT4rRmnd3IgwtGqpheekRBf4MpiOA9KgBwYFK4EEAAqhRANCAATb3jtKm3JkfGE3ezV4CK14nErowNbQrcV81e+Kks3GmTvwUkpipNTpODj1vq+4h0Nonb1NKMr0fzx2tkKcadWz\"\n    },\n    {\n        \"source\": \"14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ\",\n        \"destination\": \"{{address4}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE2947SptyZHxhN3s1eAiteJxK6MDW0K3FfNXvipLNxpk78FJKYqTU6Tg49b6vuIdDaJ29TSjK9H88drZCnGnVsw==\",\n        \"sourcePrivateKey\": \"MIGNAgEAMBAGByqGSM49AgEGBSuBBAAKBHYwdAIBAQQg+H7iMneZTTUQDT4rRmnd3IgwtGqpheekRBf4MpiOA9KgBwYFK4EEAAqhRANCAATb3jtKm3JkfGE3ezV4CK14nErowNbQrcV81e+Kks3GmTvwUkpipNTpODj1vq+4h0Nonb1NKMr0fzx2tkKcadWz\"\n    },\n        {\n        \"source\": \"14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ\",\n        \"destination\": \"{{address5}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE2947SptyZHxhN3s1eAiteJxK6MDW0K3FfNXvipLNxpk78FJKYqTU6Tg49b6vuIdDaJ29TSjK9H88drZCnGnVsw==\",\n        \"sourcePrivateKey\": \"MIGNAgEAMBAGByqGSM49AgEGBSuBBAAKBHYwdAIBAQQg+H7iMneZTTUQDT4rRmnd3IgwtGqpheekRBf4MpiOA9KgBwYFK4EEAAqhRANCAATb3jtKm3JkfGE3ezV4CK14nErowNbQrcV81e+Kks3GmTvwUkpipNTpODj1vq+4h0Nonb1NKMr0fzx2tkKcadWz\"\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/ledger/transaction/batch",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"ledger",
+						"transaction",
+						"batch"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Transaction Batch Multiple Blocks",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"source\": \"14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ\",\n        \"destination\": \"{{address1}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE2947SptyZHxhN3s1eAiteJxK6MDW0K3FfNXvipLNxpk78FJKYqTU6Tg49b6vuIdDaJ29TSjK9H88drZCnGnVsw==\",\n        \"sourcePrivateKey\": \"MIGNAgEAMBAGByqGSM49AgEGBSuBBAAKBHYwdAIBAQQg+H7iMneZTTUQDT4rRmnd3IgwtGqpheekRBf4MpiOA9KgBwYFK4EEAAqhRANCAATb3jtKm3JkfGE3ezV4CK14nErowNbQrcV81e+Kks3GmTvwUkpipNTpODj1vq+4h0Nonb1NKMr0fzx2tkKcadWz\"\n    },\n    {\n        \"source\": \"{{address1}}\",\n        \"destination\": \"{{address2}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"{{public1}}\",\n        \"sourcePrivateKey\": \"{{private1}}\"\n    },\n        {\n        \"source\": \"{{address2}}\",\n        \"destination\": \"{{address3}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"{{public2}}\",\n        \"sourcePrivateKey\": \"{{private2}}\"\n    },\n        {\n        \"source\": \"{{address3}}\",\n        \"destination\": \"{{address4}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"{{public3}}\",\n        \"sourcePrivateKey\": \"{{private3}}\"\n    },\n        {\n        \"source\": \"{{address4}}\",\n        \"destination\": \"{{address5}}\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"{{public4}}\",\n        \"sourcePrivateKey\": \"{{private4}}\"\n    },\n            {\n        \"source\": \"{{address5}}\",\n        \"destination\": \"14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ\",\n        \"amount\": 10,\n        \"sourcePublicKey\": \"{{public5}}\",\n        \"sourcePrivateKey\": \"{{private5}}\"\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/ledger/transaction/batch",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"ledger",
+						"transaction",
+						"batch"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Transaction Ledger",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{ \n    \"source\": \"14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ\",\n    \"destination\": \"{{address1}}\",\n    \"amount\": 10,\n    \"sourcePublicKey\": \"MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE2947SptyZHxhN3s1eAiteJxK6MDW0K3FfNXvipLNxpk78FJKYqTU6Tg49b6vuIdDaJ29TSjK9H88drZCnGnVsw==\",\n    \"sourcePrivateKey\": \"MIGNAgEAMBAGByqGSM49AgEGBSuBBAAKBHYwdAIBAQQg+H7iMneZTTUQDT4rRmnd3IgwtGqpheekRBf4MpiOA9KgBwYFK4EEAAqhRANCAATb3jtKm3JkfGE3ezV4CK14nErowNbQrcV81e+Kks3GmTvwUkpipNTpODj1vq+4h0Nonb1NKMr0fzx2tkKcadWz\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/ledger/transaction",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"ledger",
+						"transaction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Transaction Arbitrary",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{ \n    \"source\": \"{{address1}}\",\n    \"destination\": \"{{address2}}\",\n    \"amount\": 10,\n    \"sourcePublicKey\": \"{{public1}}\",\n    \"sourcePrivateKey\": \"{{private1}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/ledger/transaction",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"ledger",
+						"transaction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check Balance Ledger",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/ledger/balance/14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"ledger",
+						"balance",
+						"14u6MV6mccasLvGBPw5BtVeXWcQ7Ej7mhJ"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check Balance Ledger 1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/ledger/balance/{{address1}}",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"ledger",
+						"balance",
+						"{{address1}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check Balance Ledger 2",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/ledger/balance/{{address2}}",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"ledger",
+						"balance",
+						"{{address2}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Blocks",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/ledger/block",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"ledger",
+						"block"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Block",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/ledger/block/82f4da09",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"ledger",
+						"block",
+						"82f4da09"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Transfer",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "0.0.0.0:8080/api/v1/ledger/transaction/3996b85f",
+					"host": [
+						"0",
+						"0",
+						"0",
+						"0"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"ledger",
+						"transaction",
+						"3996b85f"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
