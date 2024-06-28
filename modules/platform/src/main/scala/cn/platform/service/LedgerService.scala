@@ -11,15 +11,20 @@ import cn.core.api.EncodedPublicKey
 import cn.core.api.EncodedPrivateKey
 import java.time.ZoneOffset
 import cats.effect.std.Random
-import cn.core.api.Nonce
 import cats.syntax.all.*
 import io.github.arainko.ducktape.*
-import cn.core.api.TransactionException.InsufficientAmount
-import cn.core.api.SignedTransaction
 import cn.core.api.TransactionException.InvalidAddressPublicKey
 import cn.platform.iml.SingleNodeLedger
 import cn.core.spi.Ledger.TransactionData
 import cn.core.api.Block
+import cn.core.shared.types.CnHash
+import cn.core.api.TransactionId
+import cn.core.spi.LedgerException.BlockNotFound
+import cn.core.spi.LedgerException.TransactionNotFound
+import cn.core.api.Transaction
+import fs2.Stream
+import cn.core.api.UnsignedTransaction
+import cn.core.api.TransactionException.EmptyTransactionRequest
 
 case class Balance(available: Amount, utxos: List[TransactionOutput])
 
@@ -29,8 +34,7 @@ case class CreateTransaction(
     amount: Amount,
     sourcePublicKey: EncodedPublicKey,
     sourcePrivateKey: EncodedPrivateKey
-  )
-
+)
 
 trait LedgerService[F[_]]:
 
@@ -38,7 +42,13 @@ trait LedgerService[F[_]]:
 
   def requestTransaction(request: CreateTransaction): F[Unit]
 
+  def requestTransactionBatch(batch: List[CreateTransaction]): F[Unit]
+
   def getBlocks: F[List[Block]]
+
+  def getBlock(id: CnHash): F[Block]
+
+  def getTransaction(txId: TransactionId): F[Transaction]
 
 object LedgerService:
 
@@ -55,19 +65,61 @@ object LedgerService:
                 Balance(Amount.applyUnsafe(utxos.map(_.amount.value).sum), utxos)
 
 
-        def requestTransaction(request: CreateTransaction): IO[Unit] =
+        private def createSignedTransaction(request: CreateTransaction): IO[Transaction] =
           for
             _ <- signerService.checkPublicKeyAndAddress(request.source, request.sourcePublicKey).flatMap(if _ then IO.unit else IO.raiseError(InvalidAddressPublicKey))
             now <- IO.realTimeInstant.map(_.atOffset(ZoneOffset.UTC))
-            tr = request.into[TransactionRequest].transform(Field.const(_.timestamp,now))
-            transaction <- ledger
+            tr = request.into[TransactionRequest].transform(Field.const(_.timestamp,now), Field.computed(_.outputs, r => Set(TransactionOutput(r.destination, r.amount))  ) )
+            unsignedTransaction <- ledger
               .getTransactionData(ledger.blocks, TransactionData.empty(tr.source))
-              .flatMap(td => IO.fromEither(tr.calculateTransaction(td.nonce, td.utxo).leftMap(_ => InsufficientAmount)))
-            signedTransaction <- signerService.sign(transaction.hash, request.sourcePrivateKey).map(SignedTransaction(_, transaction))
+              .flatMap(td => IO.fromEither(tr.calculateTransaction(td.nonce, td.utxo)))
+              signedTransaction <- signerService.sign(unsignedTransaction.hash, request.sourcePrivateKey).map(sig => unsignedTransaction.toTransaction(sig))
             _ <- signerService.checkSignature(signedTransaction, request.sourcePublicKey)
-            _ <- ledger.appendTransaction(transaction)
-          yield ()
+          yield signedTransaction
+
+        private def sign(request: CreateTransaction, tr: UnsignedTransaction): IO[Transaction] =
+          for
+            _  <- signerService.checkPublicKeyAndAddress(request.source, request.sourcePublicKey).flatMap(r => IO.raiseWhen(!r)(InvalidAddressPublicKey))
+            tr <- signerService.sign(tr.hash, request.sourcePrivateKey).map(tr.toTransaction)
+            _  <- signerService.checkSignature(tr, request.sourcePublicKey)
+          yield tr
+
+        def requestTransaction(request: CreateTransaction): IO[Unit] =
+           createSignedTransaction(request).flatMap(ledger.appendTransaction)
+
+        def requestTransactionBatch(batch: List[CreateTransaction]): IO[Unit] =
+          val groupedBySource: Map[Address, List[CreateTransaction]] = batch.groupBy(t => t.source)
+          val mergedRequests = groupedBySource
+            .map:
+              (source, ls) =>
+                source -> ls.groupBy(_.destination).toList.map((_, lss) => lss.head.copy(amount = Amount.applyUnsafe(lss.map(_.amount.value.toDouble).sum)))
+
+          IO.realTimeInstant.map(_.atOffset(ZoneOffset.UTC)).flatMap:
+            now =>
+              mergedRequests.toList.traverse:
+                (source, requests) =>
+
+                  val tr = TransactionRequest(source, requests.map(t => TransactionOutput(t.destination, t.amount)).toSet, now)
+                  val blocks = ledger.blocks
+
+
+                  IO.ref(TransactionData.empty(source)).flatMap:
+                    ref =>
+                      ref
+                        .get
+                        .flatMap(ledger.getTransactionData(blocks, _).flatTap(ref.set))
+                        .flatMap(td => IO.fromEither(tr.calculateTransaction(td.nonce, td.utxo)))
+                        .flatMap(sigTr => IO.fromOption(requests.headOption)(EmptyTransactionRequest).flatMap(sign(_, sigTr)))
+              .flatMap(lss =>  ledger.appendTransactionBatch(lss))
+              .void
 
         def getBlocks: IO[List[Block]] =
           ledger.blocks.compile.toList
+
+        def getBlock(id: CnHash): IO[Block] = getBlocks.flatMap:
+          ls => IO.fromOption(ls.find(_.hash === id))(BlockNotFound)
+
+        def getTransaction(txId: TransactionId): IO[Transaction] =
+          getBlocks.flatMap( ls => IO.fromOption(ls.flatMap(_.transactions.toList).find(t =>  t.hash.value === txId.value))(TransactionNotFound))
+
     )

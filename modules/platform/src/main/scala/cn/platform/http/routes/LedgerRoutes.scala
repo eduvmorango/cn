@@ -10,6 +10,7 @@ import sttp.tapir.server.http4s.Http4sServerInterpreter
 import cn.platform.http.model.LedgerModel
 import cn.core.api.CnException
 import cn.platform.http.model.r.balance.BlockResponse
+import cn.platform.http.model.r.balance.TransactionResponse
 
 class LedgerRoutes(ledgerService: LedgerService[IO]):
 
@@ -22,6 +23,27 @@ class LedgerRoutes(ledgerService: LedgerService[IO]):
           case Right(r) => r.asRight
           case Left(l) => LedgerModel.handleError(l).asLeft
 
+  val getTransactionEndpoint =
+    getTransaction.serverLogic:
+      txId =>
+        ledgerService.getTransaction(txId).map(TransactionResponse.fromDomain(_))
+        .attemptNarrow[CnException]
+        .map:
+          case Right(r) => r.asRight
+          case Left(l) => LedgerModel.handleError(l).asLeft
+
+  val getBlockEndpoint =
+    getBlock.serverLogic:
+      id =>
+        ledgerService.getBlock(id).map(BlockResponse.fromDomain(_))
+        .attemptNarrow[CnException]
+        .map:
+          case Right(r) => r.asRight
+          case Left(l) => LedgerModel.handleError(l).asLeft
+
+
+
+
   val postRequestTransactionEndpoint =
     postRequestTransaction.serverLogic:
       req =>
@@ -32,12 +54,23 @@ class LedgerRoutes(ledgerService: LedgerService[IO]):
           case Right(_) => ().asRight
           case Left(l) => LedgerModel.handleError(l).asLeft
 
+
+  val postRequestTransactionBatchEndpoint =
+    postRequestTransactionBatch.serverLogic:
+      req =>
+        ledgerService.requestTransactionBatch(req.map(_.toDomain))
+          .attemptNarrow[CnException]
+        .map:
+          case Right(_) => ().asRight
+          case Left(l) => LedgerModel.handleError(l).asLeft
+
+
   val getBlocksEndpoint = getBlocks.serverLogic:
     _ =>
       ledgerService.getBlocks.map(_.map(BlockResponse.fromDomain).asRight)
 
 
 
-  val endpoints = List(getBalanceEndpoint, postRequestTransactionEndpoint, getBlocksEndpoint)
+  val endpoints = List(getBalanceEndpoint, postRequestTransactionEndpoint, getBlocksEndpoint, getBlockEndpoint, getTransactionEndpoint,  postRequestTransactionBatchEndpoint)
 
   val routes = Http4sServerInterpreter[IO]().toRoutes(endpoints)

@@ -26,9 +26,14 @@ trait Ledger[F[_]]:
 
 object Ledger:
 
-  case class TransactionData(addresses: List[Address], nonce: Nonce, utxo: Map[TransactionId, (TransactionOutput, Int)])
+  case class TransactionData(
+    addresses: List[Address],
+    nonce: Nonce,
+    utxo: Map[TransactionId, (TransactionOutput, Int)],
+    accNewOutputs: List[TransactionOutput]
+  )
 
   object TransactionData:
 
-    def empty(addresses: List[Address]): TransactionData = TransactionData(addresses, Nonce(0), Map.empty)
-    def empty(address: Address): TransactionData         = TransactionData(List(address), Nonce(0), Map.empty)
+    def empty(addresses: List[Address]): TransactionData = TransactionData(addresses, Nonce(0), Map.empty, List.empty)
+    def empty(address: Address): TransactionData = TransactionData(List(address), Nonce(0), Map.empty, List.empty)

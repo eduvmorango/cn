@@ -3,6 +3,8 @@ package cn.platform.http.model
 import cn.core.api.Address
 import cn.core.api.CnException
 import cn.core.api.TransactionException
+import cn.core.api.TransactionId
+import cn.core.shared.types.CnHash
 import cn.core.spi.LedgerException
 import cn.platform.http.HttpException
 import cn.platform.http.model.codecs.codec.given
@@ -16,7 +18,9 @@ object LedgerModel:
 
   def handleError(t: CnException): HttpException =
     t match
-    case LedgerException.AddressNotFound              => HttpException.UnprocessableEntity("Ledger not found")
+    case LedgerException.AddressNotFound              => HttpException.NotFound
+    case LedgerException.BlockNotFound                => HttpException.NotFound
+    case LedgerException.TransactionNotFound          => HttpException.NotFound
     case TransactionException.InsufficientAmount      => HttpException.UnprocessableEntity("Insufficient Amount")
     case TransactionException.InvalidSignature        => HttpException.UnprocessableEntity("Invalid Signature")
     case TransactionException.InvalidAddressPublicKey =>
@@ -32,8 +36,20 @@ object LedgerModel:
 
   val getBlocks = endpoint
     .get
-    .in("ledger" / "blocks")
+    .in("ledger" / "block")
     .out(jsonBody[List[BlockResponse]])
+    .errorOut(HttpException.errorOut)
+
+  val getBlock = endpoint
+    .get
+    .in("ledger" / "block" / path[CnHash])
+    .out(jsonBody[BlockResponse])
+    .errorOut(HttpException.errorOut)
+
+  val getTransaction = endpoint
+    .get
+    .in("ledger" / "transaction" / path[TransactionId])
+    .out(jsonBody[TransactionResponse])
     .errorOut(HttpException.errorOut)
 
   val postRequestTransaction =
@@ -41,5 +57,13 @@ object LedgerModel:
       .post
       .in("ledger" / "transaction")
       .in(jsonBody[CreateTransactionRequest])
+      .out(statusCode(StatusCode.Accepted))
+      .errorOut(HttpException.errorOut)
+
+  val postRequestTransactionBatch =
+    endpoint
+      .post
+      .in("ledger" / "transaction" / "batch")
+      .in(jsonBody[List[CreateTransactionRequest]])
       .out(statusCode(StatusCode.Accepted))
       .errorOut(HttpException.errorOut)

@@ -24,6 +24,7 @@ import cats.syntax.all.*
 import cn.core.api.SignedTransaction
 import cn.core.api.CnException
 import cn.platform.service.SignerException.SigningError
+import cn.core.api.Transaction
 
 sealed trait SignerException extends CnException
 
@@ -44,7 +45,7 @@ trait SignerService[F[_]]:
 
   def sign(hash: CnHash, privateKey: EncodedPrivateKey): F[Signature]
 
-  def checkSignature(transaction: SignedTransaction, publicKey: EncodedPublicKey): F[Boolean]
+  def checkSignature(transaction: Transaction, publicKey: EncodedPublicKey): F[Boolean]
 
   def checkPublicKeyAndAddress(address: Address, publicKey: EncodedPublicKey ): F[Boolean]
 
@@ -70,6 +71,8 @@ object SignerService:
         (generator, keyFactory)
       .map((gen, keyFactory) =>
         new SignerService[IO]:
+
+
           def deriveAddress(publicKey: Array[Byte]): Address =
             def base58(input: Array[Byte]): String =
               val alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
@@ -135,13 +138,13 @@ object SignerService:
             ).recoverWith(_ => IO.raiseError(SigningError))
 
 
-          def checkSignature(transaction: SignedTransaction, publicKey: EncodedPublicKey): IO[Boolean] =
+          def checkSignature(transaction: Transaction, publicKey: EncodedPublicKey): IO[Boolean] =
               decodePublicKey(publicKey).flatMap(pk =>
                 IO.delay:
                   val sig = java.security.Signature.getInstance("SHA256withECDSA", "BC")
                   sig.initVerify(pk)
                   sig.update(transaction.hash.value.getBytes("UTF-8"))
-                  sig.verify(Base64.getDecoder().decode(transaction.sig.value))
+                  sig.verify(Base64.getDecoder().decode(transaction.signature.value))
               ).adaptError(_ => SigningError)
 
 

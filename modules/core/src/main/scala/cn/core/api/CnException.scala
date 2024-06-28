@@ -15,5 +15,8 @@ object TransactionException:
   case object InvalidSignature extends CnException:
     def message = "Invalid Signature"
 
+  case object EmptyTransactionRequest extends CnException:
+    def message = "Empty Transaction Request"
+
   case object InvalidAddressPublicKey extends CnException:
     def message = "The address isn't bounded to the Public Key"

@@ -25,8 +25,14 @@ object balance:
 
   case class BalanceResponse(available: Amount, utxos: List[TransactionOutput]) derives Codec.AsObject, Schema
 
-  case class TransactionResponse(id: CnHash, nonce: Nonce, is: List[TransactionInput], os: List[TransactionOutput])
-    derives Codec.AsObject, Schema
+  case class TransactionResponse(
+    id: CnHash,
+    signature: Signature,
+    nonce: Nonce,
+    is: List[TransactionInput],
+    os: List[TransactionOutput]
+  ) derives Codec.AsObject,
+      Schema
 
   object TransactionResponse:
 
@@ -34,6 +40,7 @@ object balance:
       t.into[TransactionResponse].transform(Field.computed(_.id, _.hash))
 
   case class BlockResponse(
+    id: CnHash,
     prior: CnHash,
     transactions: List[TransactionResponse],
     signature: Signature,
@@ -48,6 +55,7 @@ object balance:
       block
         .into[BlockResponse]
         .transform(
+          Field.computed(_.id, _.hash),
           Field.computed(_.prior, _.prior.map(_.hash).getOrElse(CnHash(""))),
           Field.computed(_.signature, _.signature.get),
           Field.computed(_.transactions, _.transactions.toList.map(TransactionResponse.fromDomain))
